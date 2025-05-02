@@ -67,3 +67,25 @@ pub fn trace() -> Option<utils::otlp::OtelGuard> {
     utils::metrics::init_metrics();
     guard
 }
+
+/// Init tracing only, including OTLP if enabled.
+///
+/// This will perform the following:
+/// - Read environment configuration for tracing
+/// - Determine whether to enable OTLP
+/// - Install a global tracing subscriber, using the OTLP provider if enabled
+///
+/// See [`init_tracing`] for more
+/// details on specific actions taken and env vars read.
+///
+/// # Returns
+///
+/// The OpenTelemetry guard, if OTLP is enabled. This guard should be kept alive
+/// for the lifetime of the program to ensure the exporter continues to send
+/// data to the remote API.
+///
+/// [`init_tracing`]: utils::tracing::init_tracing
+/// [`init_metrics`]: utils::metrics::init_metrics
+pub fn trace_only() -> Option<utils::otlp::OtelGuard> {
+    utils::tracing::init_tracing()
+}
