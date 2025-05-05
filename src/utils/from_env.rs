@@ -152,7 +152,7 @@ pub struct EnvItemInfo {
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum FromEnvErr<Inner> {
     /// The environment variable is missing.
-    #[error("error reading variable {0}: {1}")]
+    #[error("cannot read variable {0}: {1}")]
     EnvError(String, VarError),
     /// The environment variable is empty.
     #[error("environment variable {0} is empty")]
