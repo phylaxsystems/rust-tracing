@@ -27,6 +27,7 @@ const OTEL_ENDPOINT: &str = "OTEL_EXPORTER_OTLP_ENDPOINT";
 const OTEL_LEVEL: &str = "OTEL_LEVEL";
 const OTEL_TIMEOUT: &str = "OTEL_TIMEOUT";
 const OTEL_ENVIRONMENT: &str = "OTEL_ENVIRONMENT_NAME";
+const OTEL_SERVICE_NAME: &str = "OTEL_SERVICE_NAME";
 
 /// Drop guard for the Otel provider. This will shutdown the provider when
 /// dropped, and generally should be held for the lifetime of the `main`
@@ -103,6 +104,8 @@ impl core::error::Error for OtlpParseError {}
 ///   **milliseconds**. Defaults to 1000ms, which is equivalent to 1 second.
 /// - OTEL_ENVIRONMENT_NAME - optional. Value for the `deployment.environment.
 ///   name` resource key according to the OTEL conventions.
+/// - OTEL_SERVICE_NAME - optional. Value for the `service.name` resource key
+///   according to the OTEL conventions. Overrides the `CARGO_PKG_NAME` if set.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct OtelConfig {
@@ -118,6 +121,9 @@ pub struct OtelConfig {
 
     /// OTEL convenition `deployment.environment.name`
     pub environment: String,
+
+    /// OTEL convention `service.name`. Overrides `CARGO_PKG_NAME`.
+    pub service_name_override: Option<String>,
 }
 
 impl FromEnv for OtelConfig {
@@ -145,6 +151,11 @@ impl FromEnv for OtelConfig {
                 description: "OTLP environment name, a string",
                 optional: true,
             },
+            &EnvItemInfo {
+                var: OTEL_SERVICE_NAME,
+                description: "OTLP service name, a string. Overrides the CARGO_PKG_NAME if set.",
+                optional: true,
+            },
         ]
     }
 
@@ -158,11 +169,14 @@ impl FromEnv for OtelConfig {
 
         let environment = String::from_env_var(OTEL_ENVIRONMENT).unwrap_or("unknown".into());
 
+        let service_name_override = String::from_env_var(OTEL_SERVICE_NAME).ok();
+
         Ok(Self {
             endpoint,
             level,
             timeout,
             environment,
+            service_name_override,
         })
     }
 }
@@ -181,15 +195,22 @@ impl OtelConfig {
     /// - `OTEL_ENVIRONMENT_NAME` - optional. Value for the
     ///   `deployment.environment.name` resource key according to the OTEL
     ///   conventions. Defaults to `"unknown"`.
+    /// - `OTEL_SERVICE_NAME` - optional. Value for the `service.name` resource key.
+    ///   If set, this will override the default service name taken from
+    ///   `CARGO_PKG_NAME`.
     pub fn load() -> Option<Self> {
         Self::from_env().ok()
     }
 
     fn resource(&self) -> Resource {
+        let service_name = self
+            .service_name_override
+            .clone()
+            .unwrap_or_else(|| env!("CARGO_PKG_NAME").to_string());
         Resource::builder()
             .with_schema_url(
                 [
-                    KeyValue::new(SERVICE_NAME, env!("CARGO_PKG_NAME")),
+                    KeyValue::new(SERVICE_NAME, service_name),
                     KeyValue::new(SERVICE_VERSION, env!("CARGO_PKG_VERSION")),
                     KeyValue::new(DEPLOYMENT_ENVIRONMENT_NAME, self.environment.clone()),
                 ],
@@ -229,6 +250,7 @@ mod test {
             std::env::remove_var(OTEL_LEVEL);
             std::env::remove_var(OTEL_TIMEOUT);
             std::env::remove_var(OTEL_ENVIRONMENT);
+            std::env::remove_var(OTEL_SERVICE_NAME);
         }
     }
 
@@ -251,6 +273,7 @@ mod test {
             assert_eq!(cfg.level, tracing::Level::DEBUG);
             assert_eq!(cfg.timeout, std::time::Duration::from_millis(1000));
             assert_eq!(cfg.environment, "unknown");
+            assert!(cfg.service_name_override.is_none());
         })
     }
 
@@ -279,6 +302,27 @@ mod test {
 
             let cfg = OtelConfig::load().unwrap();
             assert_eq!(cfg.timeout, std::time::Duration::from_millis(500));
+        })
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_env_read_service_name() {
+        run_clear_env(|| {
+            unsafe {
+                std::env::set_var(OTEL_ENDPOINT, URL);
+                std::env::set_var(OTEL_SERVICE_NAME, "my-test-service");
+            }
+
+            let cfg = OtelConfig::load().unwrap();
+            assert_eq!(cfg.service_name_override, Some("my-test-service".to_string()));
+
+            let resource = cfg.resource();
+            let service_name_attr = resource
+                .iter()
+                .find(|(k, _)| k.as_str() == SERVICE_NAME)
+                .unwrap();
+            assert_eq!(service_name_attr.1.as_str(), "my-test-service");
         })
     }
 
