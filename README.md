@@ -43,6 +43,9 @@ Also, see .env.example
   **milliseconds**. Defaults to 1000ms, which is equivalent to 1 second.
 - `OTEL_ENVIRONMENT_NAME` - optional. Value for the `deployment.environment.
   name` resource key according to the OTEL conventions.
+- `OTEL_SERVICE_NAME` - optional. Value for the `service.name` resource key
+  according to the OTEL conventions. If set, this will override the default
+  service name taken from `CARGO_PKG_NAME`.
 - `TRACING_METRICS_PORT` - Which port to bind the the exporter to. If the variable is missing or unparseable, it defaults to 9000.
 - `TRACING_LOG_JSON` - If set, will enable JSON logging.
 
