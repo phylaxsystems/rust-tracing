@@ -32,7 +32,7 @@ serde = { version = "1", features = ["derive"] }
 ajj = "0.3.1"
 axum = "0.8.1"
 serial_test = "3.2.0"
-signal-hook = "0.3.17"
+signal-hook = "0.3.18"
 tokio = { version = "1.43.0", features = ["macros"] }
 
 [features]
