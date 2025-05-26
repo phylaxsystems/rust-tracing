@@ -33,7 +33,7 @@ ajj = "0.3.1"
 axum = "0.8.1"
 serial_test = "3.2.0"
 signal-hook = "0.3.17"
-tokio = { version = "1.43.0", features = ["macros"] }
+tokio = { version = "1.45.1", features = ["macros"] }
 
 [features]
 default = ["alloy"]
