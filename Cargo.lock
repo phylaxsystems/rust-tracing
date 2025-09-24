@@ -2806,7 +2806,7 @@ checksum = "48fd7bd8a6377e15ad9d42a8ec25371b94ddc67abe7c8b9127bec79bebaaae18"
 
 [[package]]
 name = "rust-tracing"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "ajj",
  "alloy",
@@ -2825,6 +2825,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-core",
+ "tracing-journald",
  "tracing-opentelemetry",
  "tracing-subscriber",
  "url",
@@ -3655,6 +3656,17 @@ checksum = "e672c95779cf947c5311f83787af4fa8fffd12fb27e4993211a84bdfd9610f9c"
 dependencies = [
  "once_cell",
  "valuable",
+]
+
+[[package]]
+name = "tracing-journald"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc0b4143302cf1022dac868d521e36e8b27691f72c84b3311750d5188ebba657"
+dependencies = [
+ "libc",
+ "tracing-core",
+ "tracing-subscriber",
 ]
 
 [[package]]

@@ -68,6 +68,33 @@ pub fn trace() -> Option<utils::otlp::OtelGuard> {
     guard
 }
 
+/// Init metrics and tracing with journald, including OTLP if enabled.
+///
+/// This will perform the following:
+/// - Read environment configuration for tracing
+/// - Determine whether to enable OTLP
+/// - Install a global tracing subscriber, using the OTLP provider if enabled
+/// - Read environment configuration for metrics
+/// - Install a global metrics recorder and serve it over HTTP on 0.0.0.0
+///
+/// See [`init_tracing_with_journald`] and [`init_metrics`] for more
+/// details on specific actions taken and env vars read.
+///
+/// # Returns
+///
+/// The OpenTelemetry guard, if OTLP is enabled. This guard should be kept alive
+/// for the lifetime of the program to ensure the exporter continues to send
+/// data to the remote API.
+///
+/// [`init_tracing_with_journald`]: utils::tracing::init_tracing_with_journald
+/// [`init_metrics`]: utils::metrics::init_metrics
+#[cfg(feature = "journald")]
+pub fn trace_with_journald() -> Option<utils::otlp::OtelGuard> {
+    let guard = utils::tracing::init_tracing_with_journald();
+    utils::metrics::init_metrics();
+    guard
+}
+
 /// Init tracing only, including OTLP if enabled.
 ///
 /// This will perform the following:
