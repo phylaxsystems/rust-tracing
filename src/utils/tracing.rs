@@ -66,3 +66,36 @@ pub fn init_tracing() -> Option<OtelGuard> {
         None
     }
 }
+
+/// Init tracing with journald, returning an optional guard for the OTEL provider.
+///
+/// If the OTEL environment variables are not set, this function will
+/// initialize a basic tracing subscriber with a `fmt` layer. If the
+/// environment variables are set, it will initialize the OTEL provider
+/// with the specified configuration, as well as the `fmt` layer.
+///
+/// ## Env Reads
+///
+/// - `TRACING_LOG_JSON` - If set, will enable JSON logging.
+/// - As [`OtelConfig`] documentation for env var information.
+///
+/// ## Panics
+///
+/// This function will panic if a global subscriber has already been set.
+///
+/// [`OtelConfig`]: crate::utils::otlp::OtelConfig
+#[cfg(feature = "journald")]
+pub fn init_tracing_with_journald() -> Option<OtelGuard> {
+    let registry = tracing_subscriber::registry()
+        .with(tracing_journald::layer().expect("failed to create layer"));
+
+    if let Some(cfg) = OtelConfig::load() {
+        let guard = cfg.provider();
+        let registry = registry.with(guard.layer());
+        install_fmt!(registry);
+        Some(guard)
+    } else {
+        install_fmt!(registry);
+        None
+    }
+}
