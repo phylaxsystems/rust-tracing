@@ -55,6 +55,7 @@ impl OtelGuard {
     }
 
     /// Create a filtered tracing layer.
+    #[must_use]
     pub fn layer<S>(&self) -> impl Layer<S>
     where
         S: tracing::Subscriber + for<'span> tracing_subscriber::registry::LookupSpan<'span>,
@@ -98,13 +99,13 @@ impl core::error::Error for OtlpParseError {}
 /// - `OTEL_EXPORTER_OTLP_ENDPOINT` - optional. The endpoint to send traces to,
 ///   should be some valid URL. If not specified, then [`OtelConfig::load`]
 ///   will return [`None`].
-/// - OTEL_LEVEL - optional. Specifies the minimum [`tracing::Level`] to
+/// - `OTEL_LEVEL` - optional. Specifies the minimum [`tracing::Level`] to
 ///   export. Defaults to [`tracing::Level::DEBUG`].
-/// - OTEL_TIMEOUT - optional. Specifies the timeout for the exporter in
+/// - `OTEL_TIMEOUT` - optional. Specifies the timeout for the exporter in
 ///   **milliseconds**. Defaults to 1000ms, which is equivalent to 1 second.
-/// - OTEL_ENVIRONMENT_NAME - optional. Value for the `deployment.environment.
+/// - `OTEL_ENVIRONMENT_NAME` - optional. Value for the `deployment.environment.
 ///   name` resource key according to the OTEL conventions.
-/// - OTEL_SERVICE_NAME - optional. Value for the `service.name` resource key
+/// - `OTEL_SERVICE_NAME` - optional. Value for the `service.name` resource key
 ///   according to the OTEL conventions. Overrides the `CARGO_PKG_NAME` if set.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
@@ -198,6 +199,7 @@ impl OtelConfig {
     /// - `OTEL_SERVICE_NAME` - optional. Value for the `service.name` resource key.
     ///   If set, this will override the default service name taken from
     ///   `CARGO_PKG_NAME`.
+    #[must_use]
     pub fn load() -> Option<Self> {
         Self::from_env().ok()
     }
@@ -221,6 +223,11 @@ impl OtelConfig {
 
     /// Instantiate a new Otel provider, and start relevant tasks. Return a
     /// guard that will shut down the provider when dropped.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the OTLP HTTP exporter cannot be built.
+    #[must_use]
     pub fn provider(&self) -> OtelGuard {
         let exporter = opentelemetry_otlp::SpanExporter::builder()
             .with_http()
@@ -274,7 +281,7 @@ mod test {
             assert_eq!(cfg.timeout, std::time::Duration::from_millis(1000));
             assert_eq!(cfg.environment, "unknown");
             assert!(cfg.service_name_override.is_none());
-        })
+        });
     }
 
     #[test]
@@ -288,7 +295,7 @@ mod test {
 
             let cfg = OtelConfig::load().unwrap();
             assert_eq!(cfg.level, tracing::Level::WARN);
-        })
+        });
     }
 
     #[test]
@@ -302,7 +309,7 @@ mod test {
 
             let cfg = OtelConfig::load().unwrap();
             assert_eq!(cfg.timeout, std::time::Duration::from_millis(500));
-        })
+        });
     }
 
     #[test]
@@ -315,7 +322,10 @@ mod test {
             }
 
             let cfg = OtelConfig::load().unwrap();
-            assert_eq!(cfg.service_name_override, Some("my-test-service".to_string()));
+            assert_eq!(
+                cfg.service_name_override,
+                Some("my-test-service".to_string())
+            );
 
             let resource = cfg.resource();
             let service_name_attr = resource
@@ -323,7 +333,7 @@ mod test {
                 .find(|(k, _)| k.as_str() == SERVICE_NAME)
                 .unwrap();
             assert_eq!(service_name_attr.1.as_str(), "my-test-service");
-        })
+        });
     }
 
     #[test]
@@ -334,6 +344,6 @@ mod test {
 
             let cfg = OtelConfig::load();
             assert!(cfg.is_none());
-        })
+        });
     }
 }

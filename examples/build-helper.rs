@@ -5,9 +5,9 @@ use std::sync::{
 };
 
 fn main() {
-    let term: Arc<AtomicBool> = Default::default();
+    let term = Arc::<AtomicBool>::default();
 
     let _ = signal_hook::flag::register(signal_hook::consts::SIGINT, Arc::clone(&term));
 
-    trace();
+    let _guard = trace();
 }

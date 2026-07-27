@@ -24,7 +24,7 @@ use std::sync::{
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    let term: Arc<AtomicBool> = Default::default();
+    let term = Arc::<AtomicBool>::default();
     signal_hook::flag::register(signal_hook::consts::SIGTERM, Arc::clone(&term))?;
     signal_hook::flag::register(signal_hook::consts::SIGINT, Arc::clone(&term))?;
 
