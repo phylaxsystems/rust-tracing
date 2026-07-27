@@ -1,9 +1,9 @@
 name: Rust Build, Test, Lint
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   call-rust-base-ci:
@@ -12,8 +12,6 @@ jobs:
     with:
       rust-channel: 'nightly'
       require-lockfile: true
-      requires-private-deps: true
+      requires-private-deps: false
 
       feature-sets: '[""]'
-    secrets:
-      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}

@@ -62,6 +62,7 @@ pub mod deps {
 ///
 /// [`init_tracing`]: utils::tracing::init_tracing
 /// [`init_metrics`]: utils::metrics::init_metrics
+#[must_use]
 pub fn trace() -> Option<utils::otlp::OtelGuard> {
     let guard = utils::tracing::init_tracing();
     utils::metrics::init_metrics();
@@ -113,6 +114,7 @@ pub fn trace_with_journald() -> Option<utils::otlp::OtelGuard> {
 ///
 /// [`init_tracing`]: utils::tracing::init_tracing
 /// [`init_metrics`]: utils::metrics::init_metrics
+#[must_use]
 pub fn trace_only() -> Option<utils::otlp::OtelGuard> {
     utils::tracing::init_tracing()
 }
