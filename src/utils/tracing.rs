@@ -53,6 +53,7 @@ macro_rules! install_fmt {
 /// This function will panic if a global subscriber has already been set.
 ///
 /// [`OtelConfig`]: crate::utils::otlp::OtelConfig
+#[must_use]
 pub fn init_tracing() -> Option<OtelGuard> {
     let registry = tracing_subscriber::registry();
 

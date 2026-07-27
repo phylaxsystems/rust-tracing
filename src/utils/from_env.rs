@@ -164,6 +164,7 @@ pub enum FromEnvErr<Inner> {
 
 impl FromEnvErr<Infallible> {
     /// Convert the error into another error type.
+    #[must_use]
     pub fn infallible_into<T>(self) -> FromEnvErr<T> {
         match self {
             Self::EnvError(s, e) => FromEnvErr::EnvError(s, e),
@@ -198,11 +199,13 @@ impl<Inner> FromEnvErr<Inner> {
     }
 
     /// Missing env var.
+    #[must_use]
     pub fn env_err(var: &str, e: VarError) -> Self {
         Self::EnvError(var.to_string(), e)
     }
 
     /// Empty env var.
+    #[must_use]
     pub fn empty(var: &str) -> Self {
         Self::Empty(var.to_string())
     }
@@ -215,6 +218,10 @@ impl<Inner> FromEnvErr<Inner> {
 
 /// Convenience function for parsing a value from the environment, if present
 /// and non-empty.
+///
+/// # Errors
+///
+/// Returns an error if the variable is missing, empty, or cannot be parsed.
 pub fn parse_env_if_present<T: FromStr>(env_var: &str) -> Result<T, FromEnvErr<T::Err>> {
     let s = std::env::var(env_var).map_err(|e| FromEnvErr::env_err(env_var, e))?;
 
@@ -290,6 +297,10 @@ pub trait FromEnv: core::fmt::Debug + Sized + 'static {
     /// This will check all environment variables in the inventory, and return
     /// a list of those that are non-optional and missing. This is useful for
     /// reporting missing environment variables.
+    ///
+    /// # Errors
+    ///
+    /// Returns the required environment variables that are missing.
     fn check_inventory() -> Result<(), Vec<&'static EnvItemInfo>> {
         let mut missing = Vec::new();
         for var in Self::inventory() {
@@ -305,6 +316,10 @@ pub trait FromEnv: core::fmt::Debug + Sized + 'static {
     }
 
     /// Load from the environment.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if a required value is missing, empty, or invalid.
     fn from_env() -> Result<Self, FromEnvErr<Self::Error>>;
 }
 
@@ -325,7 +340,7 @@ where
     fn from_env() -> Result<Self, FromEnvErr<Self::Error>> {
         match T::from_env() {
             Ok(v) => Ok(Some(v)),
-            Err(FromEnvErr::Empty(_)) | Err(FromEnvErr::EnvError(_, _)) => Ok(None),
+            Err(FromEnvErr::Empty(_) | FromEnvErr::EnvError(_, _)) => Ok(None),
             Err(e) => Err(e),
         }
     }
@@ -455,6 +470,10 @@ pub trait FromEnvVar: core::fmt::Debug + Sized + 'static {
     type Error: core::error::Error;
 
     /// Load the primitive from the environment at the given variable.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the variable is missing, empty, or invalid.
     fn from_env_var(env_var: &str) -> Result<Self, FromEnvErr<Self::Error>>;
 
     /// Load the primitive from the environment at the given variable. If the
@@ -462,10 +481,14 @@ pub trait FromEnvVar: core::fmt::Debug + Sized + 'static {
     ///
     /// This function will return an error if the environment variable is set
     /// but cannot be parsed.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the variable is present but invalid.
     fn from_env_var_or(env_var: &str, default: Self) -> Result<Self, FromEnvErr<Self::Error>> {
         match Self::from_env_var(env_var) {
             Ok(v) => Ok(v),
-            Err(FromEnvErr::Empty(_)) | Err(FromEnvErr::EnvError(_, _)) => Ok(default),
+            Err(FromEnvErr::Empty(_) | FromEnvErr::EnvError(_, _)) => Ok(default),
             Err(e) => Err(e),
         }
     }
@@ -476,13 +499,17 @@ pub trait FromEnvVar: core::fmt::Debug + Sized + 'static {
     ///
     /// This function will return an error if the environment variable is set
     /// but cannot be parsed.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the variable is present but invalid.
     fn from_env_var_or_else(
         env_var: &str,
         default: impl FnOnce() -> Self,
     ) -> Result<Self, FromEnvErr<Self::Error>> {
         match Self::from_env_var(env_var) {
             Ok(v) => Ok(v),
-            Err(FromEnvErr::Empty(_)) | Err(FromEnvErr::EnvError(_, _)) => Ok(default()),
+            Err(FromEnvErr::Empty(_) | FromEnvErr::EnvError(_, _)) => Ok(default()),
             Err(e) => Err(e),
         }
     }
@@ -493,6 +520,10 @@ pub trait FromEnvVar: core::fmt::Debug + Sized + 'static {
     ///
     /// This function will return an error if the environment variable is set
     /// but cannot be parsed.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the variable is present but invalid.
     fn from_env_var_or_default(env_var: &str) -> Result<Self, FromEnvErr<Self::Error>>
     where
         Self: Default,
@@ -653,53 +684,53 @@ mod test {
         unsafe { std::env::set_var(env, val.to_string()) };
     }
 
-    fn load_expect_err<T>(env: &str, err: FromEnvErr<T::Error>)
+    fn load_expect_err<T>(env: &str, err: &FromEnvErr<T::Error>)
     where
         T: FromEnvVar,
         T::Error: PartialEq,
     {
         let res = T::from_env_var(env).unwrap_err();
-        assert_eq!(res, err);
+        assert_eq!(&res, err);
     }
 
-    fn test<T>(env: &str, val: T)
+    fn test<T>(env: &str, val: &T)
     where
         T: ToString + FromEnvVar + PartialEq + std::fmt::Debug,
     {
-        set(env, &val);
+        set(env, val);
 
         let res = T::from_env_var(env).unwrap();
-        assert_eq!(res, val);
+        assert_eq!(&res, val);
     }
 
-    fn test_expect_err<T, U>(env: &str, value: U, err: FromEnvErr<T::Error>)
+    fn test_expect_err<T, U>(env: &str, value: &U, err: &FromEnvErr<T::Error>)
     where
         T: FromEnvVar,
         U: ToString,
         T::Error: PartialEq,
     {
-        set(env, &value);
+        set(env, value);
         load_expect_err::<T>(env, err);
     }
 
     #[test]
     fn test_primitives() {
-        test("U8", 42u8);
-        test("U16", 42u16);
-        test("U32", 42u32);
-        test("U64", 42u64);
-        test("U128", 42u128);
-        test("Usize", 42usize);
-        test("I8", 42i8);
-        test("I8-NEG", -42i16);
-        test("I16", 42i16);
-        test("I32", 42i32);
-        test("I64", 42i64);
-        test("I128", 42i128);
-        test("Isize", 42isize);
-        test("String", "hello".to_string());
-        test("Url", url::Url::parse("http://example.com").unwrap());
-        test("Level", tracing::Level::INFO);
+        test("U8", &42u8);
+        test("U16", &42u16);
+        test("U32", &42u32);
+        test("U64", &42u64);
+        test("U128", &42u128);
+        test("Usize", &42usize);
+        test("I8", &42i8);
+        test("I8-NEG", &-42i16);
+        test("I16", &42i16);
+        test("I32", &42i32);
+        test("I64", &42i64);
+        test("I128", &42i128);
+        test("Isize", &42isize);
+        test("String", &"hello".to_string());
+        test("Url", &url::Url::parse("http://example.com").unwrap());
+        test("Level", &tracing::Level::INFO);
     }
 
     #[test]
@@ -717,10 +748,10 @@ mod test {
     fn test_a_few_errors() {
         test_expect_err::<u8, _>(
             "U8_",
-            30000u16,
-            FromEnvErr::parse_error("30000".parse::<u8>().unwrap_err()),
+            &30000u16,
+            &FromEnvErr::parse_error("30000".parse::<u8>().unwrap_err()),
         );
 
-        test_expect_err::<u8, _>("U8_", "", FromEnvErr::empty("U8_"));
+        test_expect_err::<u8, _>("U8_", &"", &FromEnvErr::empty("U8_"));
     }
 }
