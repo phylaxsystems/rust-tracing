@@ -648,14 +648,14 @@ impl_for_parseable!(
 
 #[cfg(feature = "alloy")]
 impl_for_parseable!(
-    alloy::primitives::Address,
-    alloy::primitives::Bytes,
-    alloy::primitives::U256
+    alloy_primitives::Address,
+    alloy_primitives::Bytes,
+    alloy_primitives::U256
 );
 
 #[cfg(feature = "alloy")]
-impl<const N: usize> FromEnvVar for alloy::primitives::FixedBytes<N> {
-    type Error = <alloy::primitives::FixedBytes<N> as FromStr>::Err;
+impl<const N: usize> FromEnvVar for alloy_primitives::FixedBytes<N> {
+    type Error = <alloy_primitives::FixedBytes<N> as FromStr>::Err;
 
     fn from_env_var(env_var: &str) -> Result<Self, FromEnvErr<Self::Error>> {
         parse_env_if_present(env_var)
