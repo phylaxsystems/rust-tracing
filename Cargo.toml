@@ -4,7 +4,7 @@ version = "0.1.4"
 edition = "2024"
 
 [dependencies]
-init4-from-env-derive =  "0.1.0"
+init4-from-env-derive =  "0.2.0"
 
 # Tracing
 tracing = "0.1.40"
