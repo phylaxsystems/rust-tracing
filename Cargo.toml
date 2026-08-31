@@ -26,7 +26,7 @@ metrics-exporter-prometheus = "0.18.3"
 
 # Other
 thiserror = "2.0.11"
-alloy = { version = "0.12.6", optional = true, default-features = false, features = ["std"] }
+alloy = { version = "2.4.1", optional = true, default-features = false, features = ["std"] }
 serde = { version = "1", features = ["derive"] }
 
 [dev-dependencies]
